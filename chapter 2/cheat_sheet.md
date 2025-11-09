@@ -9,3 +9,15 @@
 |  | Noise words are redundant. the word `variable` should not appear in a variable name. the word `table` should never appear in a table name. How is `NameString` better than `Name`? |
 |  | the `length` of a variable should correspond to the size of its `scope`. |
 |  | use `searchable` and `pronouncable` names. |
+|  | avoid `encoding` names, because if a new employee has the pain to understand the complexity of the code, it is a pain in the ass to learn `encoding language` as well. |
+|  | naming loop counters `i,j,k` is traditional. if the scope is small, `okay` to use. |
+|  | `clarity` is `king`. |
+|  | a class name should `not` be a `verb`. |
+|  | `class` and `object` names should be `nouns`. |
+|  | `method` names should be `verb`. |
+|  | accessors, mutators and predicates should be named for their value and prefixed with `get`, `set` and `is`.|
+|  | when constructor are overloaded use static factory methods with names that describe the argument like `Complex.FromRealNumber(23.0);`.|
+|  | Pick one word per concept. don't be like `fetch`, `retrieve`, `get`. |
+|  | do not use the same word for two concepts. |
+|  | where there is programmer to read, use `solution domain names` like algorithms and etc. when there is none, use `problem domain names`. |
+

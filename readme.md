@@ -1,6 +1,11 @@
 # Goal.
 in the process of reading this book i will find a piece of bad good, and in each chapter i will improve the said topics.
 
+EDIT : what better way to learn than fixing your own mistakes? :)
+
+i am gonna work on micro ecommerce project that i have developed for the last week.
+
+[click here](https://github.com/sina-naghipour/micro-ecommerce) to see the project.
 # Chapter 1 : Clean Code
 
 
@@ -174,3 +179,88 @@ single letter variables can `ONLY` be used as local variables inside short metho
 
 ### the length of a name should correspond to the size of its scope.
 
+### Avoid encoding
+
+if a variable or constant might be seen or used in multiple places in a body of code, it is imperative to give it a `search-friendly name`.
+
+### Do not add member prefixes
+
+```cpp
+    m_dsc = name; // this is a member function.
+```
+
+### Avoid naming interfaces and implementations old fashioned
+
+```java
+// Interface
+public interface ShapeFactory {
+    Circle createCircle();
+    Rectangle createRectangle();
+}
+
+// Concrete implementation
+public class ShapeFactoryImpl implements ShapeFactory {
+    @Override
+    public Circle createCircle() { ... }
+
+    @Override
+    public Rectangle createRectangle() { ... }
+}
+```
+
+### Avoid mental mapping
+
+readers should not mentally translate your names into other names they already know.
+
+this problem arises from a choice to use neither problem domain terms nor solution domain terms.
+
+traditionally we use i,j,k for loop counters if its scope is very small. if they don't conflict with anything, this kinda naming is a good choice.
+
+
+### Class names
+
+class and object names should have noun or noun phrase names like `Customer`, `WikiPage`, `Acconut` and `AddressParser`.
+
+a class name should `not` be a `verb`.
+
+### Method names
+
+method names should be `verbs`.
+
+accessors, mutators and predicates should be named for their value and prefixed with `get`, `set` and `is`.
+
+when constructor are overloaded use static factory methods with names that describe the argument like `Complex.FromRealNumber(23.0);`.
+
+### Don't be cute white guy.
+
+your sense of humor is trash, don't try to act funny.
+
+### Pick one word per concept.
+
+don't try to have `fetch`, `retrieve` and `get` as equivalent methods for different classes.
+
+### Don't pun.
+
+do not use the same word for two concepts.
+
+if you have multiple classes and they all have an `add` method, as long as the parameter lists and return values of the various `add` methods are semantically equivalent, all is well.
+
+### Use solution domain names
+
+your audience are mainly programmers so using cs terms, algorithms or pattern names is an okay thing. like a `JobQueue`.
+
+### Use problem domain names
+
+when there is no programmer for what you do, use names from problem domain. at least the programmer could ask a domain expert what it means.
+
+### Add meaningful context
+
+if you see `state` would you know its for an `Address`?
+no, so instead of `state` use `addrState`.
+
+
+### Final Rambles.
+
+hardest thing about choosing good names is that it reuires good descriptive skills and a shared cultural background.
+
+### at this point, i have changed my micro ecommerce app and each file now follows the clean code rule of choosing good names.
