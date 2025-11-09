@@ -1,3 +1,6 @@
+# Goal.
+in the process of reading this book i will find a piece of bad good, and in each chapter i will improve the said topics.
+
 # Chapter 1 : Clean Code
 
 
@@ -63,4 +66,111 @@ if we all checked-in our code a little cleaner than when we checked it out the c
 the final shithousery of this chapter is the fact that it tells you, books on art don't promise to make you an artist. all they can do is give you some of the tools, techniques and thought processes that other artists have used.
 
 ### In this book, we learn the thought process of good programmersand the tricks, techniques, and tools that they use.
+
+# Chapter 2 : Meaningful Names
+
+it is easy to say that names should reveal intent. what we want to impress upon you is that we are `serious` about this.
+
+take time with your names and change them when you find better ones. everyone who reads your code will be happier if you do so(even you).
+
+the name of a variable, function or class should answer all the big questions.
+
+it should tell you:
+- **why it exists.**
+- **what it does.**
+- **how it is used.**
+
+if a name needs a comment, it does not reveal its intent.
+
+```c++
+int d; // elapsed time in days
+```
+
+this variable does not evoke any sense of elapsed time, nor days.
+
+### we should choose a name that specifies what is being measured and the unit of that measurement.
+
+```c++
+int elapsedTimeInDays;
+int daysSinceCreation;
+int daysSinceModification;
+int fileAgeInDays;
+```
+
+choosing names that reveal intent, makes understanding and changing code much easier.
+
+### Example of a simple yet hard to understand code.
+```cpp
+public List<int[]> getThem() {
+    List<int[]> list1 = new ArrayList<int[]>();
+    for (int[] x : theList)
+        if (x[0] == 4)
+            list1.add(x);
+    return list1;
+}
+```
+
+### Previous example but with good variable name choices.
+
+```cpp
+public List<int[]> getFlaggedCells() {
+    List<int[]> flaggedCells = new ArrayList<int[]>();
+    for (int[] cell : gameBoard)
+        if (cell[STATUS_VALUE] == FLAGGED)
+            flaggedCells.add(cell);
+    return flaggedCells;
+}
+```
+
+the simplicity of the code has not been changed but the code became more `explicit`.
+
+even more, we can create a class for cells instead of using an array of `int's` and that could include an intention revealing function (call it `isFlagged`) to hide the magic numbers.
+
+```cpp
+public List<Cell> getFlaggedCells() {
+    List<Cell> flaggedCells = new ArrayList<Cell>();
+    for (Cell cell : gameBoard)
+        if (cell.isFlagged())
+            flaggedCells.add(cell);
+    return flaggedCells;
+}
+```
+
+### Avoid Disinformation
+
+programmers must avoid leaving false clues that obscure the meaning of code.
+
+variables like `hp`, `aix` and `sco` are not good because they are variants of Unix platforms or variants.
+
+**do not refer to a grouping of accounts as an `accountList` unless it's actually a `List`.**
+
+if it's not a list refer to it as `accountGroup` or `bunchOfAccounts` or just `Accounts`.
+
+**Beware of using names which vary in small ways.**
+
+### why should we make names, `obviously` different.
+
+```cpp
+getActiveAccount ();
+getActiveAccounts();
+getActiveAccountInfo();
+```
+
+**how is a programmer able to acknowledge which function to call?**
+
+**in the absence of specific conventions** the variable `moneyAmount` is indistinguishable from `money`, `customerInfo` from `customer`.
+
+### Use Pronounceable names
+
+make names pronounceable so that your code could be quote on quote `spoken`.
+
+why does it matter? **programming is a social activity.**
+
+### Use Searchable names
+
+single letter variables cannot be searched.
+
+single letter variables can `ONLY` be used as local variables inside short methods.
+
+### the length of a name should correspond to the size of its scope.
 
