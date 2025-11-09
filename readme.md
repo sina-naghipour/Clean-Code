@@ -1,11 +1,3 @@
-# Goal.
-in the process of reading this book i will find a piece of bad good, and in each chapter i will improve the said topics.
-
-EDIT : what better way to learn than fixing your own mistakes? :)
-
-i am gonna work on micro ecommerce project that i have developed for the last week.
-
-[click here](https://github.com/sina-naghipour/micro-ecommerce) to see the project.
 # Chapter 1 : Clean Code
 
 
@@ -263,4 +255,29 @@ no, so instead of `state` use `addrState`.
 
 hardest thing about choosing good names is that it reuires good descriptive skills and a shared cultural background.
 
-### at this point, i have changed my micro ecommerce app and each file now follows the clean code rule of choosing good names.
+# Chapter 3 : Functions
+
+first rule, they should be `small`.
+
+### Blocks and Intending
+
+blocks within `if`, `else`, `while` and so on should be 1 line long, that line should probably be a function call.
+
+the indent level of a function should not be greater than 1 or 2.
+functions should do one thing. they should do it well. they should do it only.
+
+if the function contains steps at many different levels of abstraction, it is not doing one thing.
+
+another way to know that a function is doing more than `one` thing, is if you can extract another function from it with a name that is not merely a restatement of its implementation.
+
+### Sections within functions
+
+if a function contains, declaration, initialization and sieve, or something of this fabric, it is doing more than one thing.
+
+### One level of abstraction per function
+
+we need to make sure that the statements within our function are all at the same level of abstraction.
+
+an example : `getHtml();` high level, `PathParser.render(pagePath)` intermediate level, `.append('\n')` is a low level of abstraction.
+
+once `details` are mixed with essential concepts, more and more details tend to appear within the function.
