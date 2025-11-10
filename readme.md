@@ -563,3 +563,156 @@ for short functions that only do one thing, a well-chosen name is better than a 
 
 # Chapter 5 : Formatting
 
+code formatting is super important.
+
+average height of each file should be around 100 lines.
+
+the name of the file should sufficiently tell us if we are in the correct part of the code or not.
+
+### Use blank lines to seperate logics and parts.
+
+### Related concepts should be vertically close together.
+
+### Dependent functions, should be vertically close.
+
+### In general, we want function call dependencies to point in the downward direction.
+
+### No more than 120 characters per line.
+
+# Chapter 6 : Objects and Data Structures
+
+we do not want to expose the details of our data. rather we want to express our data in abstract terms.
+
+worst option, add getters and setters left right and center.
+
+### Difference between objects and data structures
+
+objects hide their data behind abstractions and expose functions that operate on that data.
+
+data strcuture expose their data and have no meaningful functions.
+
+they are `virtual opposite`.
+
+this is `procedural programming` (data + seperate logic).
+```java
+class Circle {
+    public Point center;
+    public double radius;
+}
+
+class Geometry {
+    public static double area(Circle c) {
+        return Math.PI * c.radius * c.radius;
+    }
+}
+```
+you can add a function called `perimeter`, easy.
+
+this is `object oriented` (behaviour inside the object).
+
+```java
+interface Shape {
+    double area();
+}
+
+class Circle implements Shape {
+    private double radius;
+    public double area() { return Math.PI * radius * radius; }
+}
+```
+you can add a new shape `Triangle`.
+
+```java
+class Triangle implements Shape { ... }
+```
+
+### Complimentary of objects and data structures
+
+procedural code (code using data structures) make it easy to add new `functions` without changing the `existing data structures`.
+
+object oriented code on the other hand, makes it easier to add new `classes` without changing `existing functions`.
+
+### The law of demeter
+
+a module should not know about the innards of the `objects` it manipulates.
+as we saw, objects hide their data and expose operations. this means that an object should not expose its internal structure through accessors because to do so is to expose rather than to hide its internal structure.
+
+more precisely:
+
+a method `f` of a class `C` should only call the methods of:
+- `C`
+- an object created by `f`
+- an object passed as an argument to `f`
+-an object held in an instance variable of `C`
+
+in basic words we can say:
+- Itself
+- Its fields
+- Its arguments
+- Objects it creates
+
+`talk to friends not strangers`.
+
+### Train wrecks
+
+this kinda code is called train wrecks because it looks like a bunch of coupled train cars.
+
+### What is the difference between implementation and abstraction?
+
+implementation : how the data is stored or calculated.
+
+Example -> whether `Point` uses x, y or r and theta.
+
+abstraction : what can you do with the data.
+
+Example -> `move point` or `get distance from`.
+
+### Final rambles of this chapter
+
+getters and setters make your private data public.
+
+real encapsulation means hiding how things are done, not just putting a function around it.
+
+# Chapter 7 : Error Handling
+
+in short, things can go wrong, and when they do, the code we right has to know what to do.
+
+### Use exceptions rather than return codes.
+
+### try to write tests that force exceptions
+
+### fun fact alert.
+
+this fucking guy likes the word clutter.
+
+here's the meaning -> cover or fill with untidy collection of things.
+
+### Provide context with exceptions
+
+each exception that you throw should provide enough context to determine the source and location of an error.
+
+### Wrapping third-party api calls can be advantageous.
+
+the process of following these rules, pushes error detection to the edges of your program.
+
+you wrap your external APIs so that you can throw your own exceptions.
+
+### Don't return null
+
+### Don't pass null
+
+# Chapter 8 : Boundaries
+
+sometimes (quite often) we must integrate a foreign code with our own. we want to keep the boundaries of our software clean.
+
+### Using third party
+
+third-party packages want broad availablity but users want precise usage.
+this tension can cause problems.
+
+when we use a third-party package like `Map`, we don't want this api to run over our whole system because if we wanted to change this api to `BetterMap` we have to fully change our system. instead we wrap this api into our own version of it so we could have control over it. it might have a `delete` method which we would not wish to have, by wrapping the api into our own version we can define boundaries that our system has to have.
+
+### Learning tests are better than free
+
+if we write some tests to understand the gist of how this `third-party API` works, we learn api through it, and after some time we could check this tests to see if the api is still working how we wish it would work.
+
