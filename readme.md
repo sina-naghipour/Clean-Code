@@ -428,3 +428,138 @@ functions are the verb of that language, classes are the nouns.
 ### the art of programming is actually the art of designing a language.
 
 systems are stories to be told rather than programs to be written.
+
+# Chapter 4 : Comments
+
+nothing can be quite so helpful as a well-placed comment.
+
+if our programming was expressive enough we would not need comments.
+
+the proper use of comments is to compensate for our failure to express ourself in code.
+
+`failure` is a keyword.
+comments are always `failures`.
+
+whenever you need to write a comment, se whether there isn't some way to express yourself in code.
+
+### Comments do not make up for bad code
+
+### Explain yourself in code
+
+## Good comments
+
+keep in mind that the only good comment is the one you found a way not to write.
+
+### Legal comments
+
+coding standards sometimes forces us to write comments.
+
+like legal comments, @author, @copyright, etc.
+
+### Informative comments
+
+it is sometimes useful to provide basic information.
+like a comment that explains the return value of an abstract method.
+
+```cpp
+// Returns an instance of the Responder being tested.
+protected abstract Responder responderInstance();
+```
+
+this comment could be made redundant by renaming the function to `responderBeingTested`.
+
+### Explanation of intent
+
+sometimes a comment provides the intent behind a decision.
+
+like 
+```cpp
+// this is our best effort to handle this.
+```
+
+### Clarification
+
+sometimes it is better to make an argument or return value readable by comments(like when it is from standard libraries.)
+
+### Warning of consequences
+
+sometimes it is useful to warn other programmers about consequences.
+
+### Todo comments
+
+leave them to notify needed updates to that section.
+
+### Amplification
+
+a comment may be used to amplify the importance of something that may otherwise seem inconsequential.
+
+## Bad Comments
+
+most comments are bad.
+
+### Mumbling comments
+
+if you want to write a comment, take the time to write the best comment.
+
+any comment that forces you to `look in another module` for the meaning of that comment has failed to communicate.
+
+### Redundant comments
+
+these comments are less informative than the code, do not justify the code, do not provide intent or rationale, and certainly are not easier to read than the code.
+
+### Misleading comments
+
+like when something happens `if` something else happens, but you write in the comment `when`, subtly different
+
+### Mandated comment
+
+silly to have every function javadoc, or every variable must have a comment.
+
+### Journal comments
+
+do not add a comment every time you change a module.
+
+### Noise comments
+
+```cpp
+/**
+ * Default constructor.
+ */
+protected AnnualDateRule() {
+}
+```
+
+### Position markers
+
+do not use the following, (sometimes makes sense.)
+
+### Attributions and bylines
+
+no need to add a comment just to say you wrote it.
+
+### Commented out code
+
+it is hard for others to decide whether to delete commented codes or not, so don't do it.
+
+### Nonlocal Information
+
+if you must write a comment, make sure it describes the code it appears near.
+don't offer systemwide information in the context of a local comment.
+
+### Too much information
+
+don't put irrelevant descriptions.
+
+### Inobvious connection
+
+the connection between a comment and the code it describes should be obvious.
+
+### Function header
+
+for short functions that only do one thing, a well-chosen name is better than a comment header.
+
+### Javadocs for nonpublic code
+
+
+# Chapter 5 : Formatting
+
