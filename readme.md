@@ -281,3 +281,150 @@ we need to make sure that the statements within our function are all at the same
 an example : `getHtml();` high level, `PathParser.render(pagePath)` intermediate level, `.append('\n')` is a low level of abstraction.
 
 once `details` are mixed with essential concepts, more and more details tend to appear within the function.
+
+### The stepdown rule
+
+we want the code to read like a top-down narrative.
+
+we want every function to be followed by those at the next level of abstraction so that we can read the program, descending one level of abstraction at a time as we read down the list of functions.
+
+it is hard to write functions that stay at a single level of abstraction.
+
+### Switch statement
+
+we cannot avoid `switch` statements, but we can make sure that each `switch` statement is buried in a low-level class and is never repeated.
+
+### Use descriptive names
+
+you know you are working with clean code when each routine turns out to be pretty much what you expected.
+
+the smaller and more focused a function is, the easier it is to choose a descriptive name.
+
+a long descriptive name is better than a long descriptive comment.
+
+### Function arguments
+
+the ideal number of arguments for a function is `zero`. then `one`, closely `two`.
+
+you should avoid using `three` argument functions.
+
+we do not expect the information going `out` of a function through `argument`, but by `result`.
+
+`Flag arguments` are terrible.
+
+two arguments for a function like `Point` is perfectly reasonable, because pay attention `these two arguments are ordered components of a single value`.
+
+how the hell do we transform two argument functions into one argument function?
+
+if lets say our function accepts an argument like `outputStream`, this argument could be passed to the function, via making that function a method of a class and that `outputStream` is a member of this class.
+
+### Argument objects
+
+when a function seems to need more than two or three arguments, it is likely that some of those arguments need to be wrapped into a class of their own.
+
+```cpp
+Circle makeCircle(double x, double y, double radius);
+Circle makeCircle(Point center, double radius);
+```
+
+`x` and `y` are a part of a concept that deserves a name of its own.
+
+### Argument list
+
+if some of arguments are treated identically, they are equivalent to a single argument of type `List`.
+
+### Verbs and keywords
+
+for monad(1 argument) functions -> verb/noun pair. `WriteField(name);`
+
+using good names for functions, removes the fact that we have to remember the order of the arguments.
+
+### Have no side effect
+
+your function promised to do one thing, and it shouldn't hiddenly do other things.
+
+if your function says `CheckPassword`, but it hiddenly also initializes the session by calling a function called `initSession`, someone who doesn't know this, and just read the function's name, now accidentaly initialized a session as well!!!
+
+this creates temporal coupling -> calling `CheckPassword` is only safe to call when it is okay to initialize a session.
+
+the name should be `CheckPasswordAndInitializeSession`.
+
+### Output arguments
+
+`appendFooter(s)` s is an output argument rather than input argument.
+
+is s the footer? is something added to s?
+
+this makes to `double-check` meaning that you have to at least the functions signature.
+
+nowadays, the purpose of object oriented keyword `this` is actually an output argument.
+so do this.
+
+`report.appendFooter()`.
+
+### Command query seperation
+
+a function either should do something, or answer something, not both.
+
+`set('username','unclebob')`.
+
+the author used the verb set to be a verb, but in the context of the `if` statement it feels like an adjective.
+
+if the `username` was previously set to `unclebob` and not set the `username` attribute to `unclebob` and if that worked then ... .
+
+the function could be named `setAndCheckIfExists`, this still doesnt help the readablity of the `if` statement. the real solution is to seperate `command` from `query`.
+
+### Exceptions over error codes
+
+when you return the error code, you make caller forced to deal with the error immediately.
+
+### Extract try/catch blocks
+
+try/catch blocks mix error processing with normal processing.
+
+it is better to extract the bodies of the `try` and `catch` blocks out into functions of their own.
+
+```cpp
+ public void delete(Page page) {
+ try {
+ deletePageAndAllReferences(page);
+ }
+ catch (Exception e) {
+ logError(e);
+ }
+ }
+```
+
+this function is all about `error processing`.
+
+the function `deletePageAndAllReferences` is all about deleting a page.error handling can be ignored. this provides a nice seperation that makes the code easier to understand and modify.
+
+### Error handling is one thing
+
+functions should do one thing, error handling is one thing. fucking remember.
+
+### Don't repeat yourself
+
+duplication may be the root of all evil in a software.
+
+### Structured programming
+
+the man himself, greatest of all time, the reason i failed algorithms, mother of all routing problems, dijkstra the great, had a rule for structured programming. every function, every block within a function, should have one entry and one exit. following these rules means that there should only be one `return` statement in a function, no `break` or `continue` statement in a loop, and never, ever, ever, everrrrrrr, the trashy `goto` statement nobody likes.(boooooooooooo)
+
+this rule is actually for big functions, chunky ones. but if your functions are small, the occasional multiple `return`, `break`, or `continue` does not harm a fly.
+
+### How to write these functions?
+
+like writting an essay, you write your functions at first, then write some unittest.then you start massaging(pause) the code, refining it, changing names, splitting functions and so on, while keeping the tests passed.
+
+at the end you have functions with clean code rules.
+
+### Final rambles of this chapter
+
+every system built is from a domain-specific language designed by the programmers to describe that system.
+
+functions are the verb of that language, classes are the nouns.
+
+### the art of programming is actually the art of designing a language.
+
+systems are stories to be told rather than programs to be written.
