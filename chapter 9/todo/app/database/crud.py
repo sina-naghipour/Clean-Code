@@ -43,12 +43,14 @@ async def get_all_tasks():
         query = select(tasks_table)
         result = await session.execute(query)
         tasks = result.fetchall()
-        tasks = [{
-                'title' : task.title,
-                'deadline' : task.deadline.isoformat(),
-            } for task in tasks]
-        return tasks
-
+        if tasks:
+            tasks = [{
+                    'title' : task.title,
+                    'deadline' : task.deadline.isoformat(),
+                } for task in tasks]
+            return tasks
+        else:
+            return None
 
 async def update_task(title: str, deadline: datetime, new_title = None):
     if new_title is None:

@@ -6,7 +6,7 @@ File: main.py
 from fastapi import FastAPI, Request
 from database import crud
 import json
-
+from services import utilities
 
 app = FastAPI()
 
@@ -14,59 +14,69 @@ app = FastAPI()
 @app.get('/')
 async def list_tasks():
     try:
-        return await crud.get_all_tasks()
+        return await utilities.get_all_tasks_or_not_found()
     except Exception as e:
-        return {'message' : f'could not resolve tasks. raised an exception : {e}.'}
+        return {'message' : f'could not resolve request. raised an exception : {e}.'}
+
 
 @app.get('/title/{title}')
 async def read_task_by_title(title: str):
-    return await crud.get_task_by_title(title)
+    try:
+        return await utilities.get_task_by_title_or_not_found(title)
+    except Exception as e:
+        return {'message' : f'could not resolve request. raised an exception : {e}.'}
 
 
 @app.get('/deadline/{deadline}')
 async def read_task_by_title(deadline: str):
-    return await crud.get_task_by_deadline(deadline)
+    try:
+        return await utilities.get_tasks_by_deadline_or_not_found(deadline)
+    except Exception as e:
+        return {'message' : f'could not resolve request. raised an exception : {e}.'}
 
 
 @app.post('/create')
 async def create_new_task(request: Request):
-    payload = await request.json()
-    result = await crud.create_task(payload.get('title'), payload.get('deadline'))
-    if result:
-        return await crud.get_task_by_title(payload.get('title'))
-    else:
-        return {'message' : 'task has not been created'}
+    try:
+        payload = await request.json()
+        result = await utilities.create_task_or_fail(payload.get('title'), payload.get('deadline'))
+        if result:
+            return await utilities.get_task_by_title_or_not_found(payload.get('title'))
+        else:
+            return {'message' : 'task has not been created'}
+    except Exception as e:
+        return {'message' : f'could not resolve request. raised an exception : {e}.'}
 
 
 @app.put('/update')
 async def update_task(request: Request):
-    payload = await request.json()
-    task = await crud.get_task_by_title(payload.get('title'))
+    try:
+        payload = await request.json()
+        result = await utilities.update_task_or_fail(payload.get('title'), payload.get('deadline'), payload.get('new_title'))
+        return result
 
-    if not task:
-        return {'message' : 'task not found'}
-
-    result = await crud.update_task(payload.get('title'), payload.get('deadline'), payload.get('new_title'))
-    if result:
-        return {'message' : 'task updated'}
-    else:
-        return {'message' : 'task did not update'}
+    except Exception as e:
+        return {'message' : f'could not resolve request. raised an exception : {e}.'}
+        
 
 
 @app.delete('/delete')
 async def delete_task(request: Request):
-    payload = await request.json()
-    task = await crud.get_task_by_title(payload.get('title'))
-    
-    if not task:
-        return {'message' : 'task not found'}
-    
-    result = await crud.delete_task(payload.get('title'))
+    try:
+        payload = await request.json()
+        result = await utilities.delete_task_or_fail(payload.get('title'))
+        
+        return result
+    except Exception as e:
+        return {'message' : f'could not resolve request. raised an exception : {e}.'}
+        
 
-    if result:
-        return {'message' : 'task deleted'}
-    else:
-        return {'message' : 'task did not delete'}
+
+================================================================================
+File: __init__.py
+================================================================================
+
+
 
 
 ================================================================================
@@ -116,8 +126,9 @@ async def create_task(title: str, deadline: datetime):
     async with async_session() as session:
         query = insert(tasks_table).values(title=title, deadline=deadline)
         await session.execute(query)
-        await session.commit()
-        return True
+        if await session.commit():
+            return True
+        return False
     
 
 async def get_task_by_title(title: str):
@@ -132,7 +143,7 @@ async def get_task_by_title(title: str):
             return None    
 
 
-async def get_task_by_deadline(deadline: datetime):
+async def get_tasks_by_deadline(deadline: datetime):
     async with async_session() as session:    
 
         query = select(tasks_table).where(tasks_table.c.deadline ==deadline)
@@ -149,12 +160,14 @@ async def get_all_tasks():
         query = select(tasks_table)
         result = await session.execute(query)
         tasks = result.fetchall()
-        tasks = [{
-                'title' : task.title,
-                'deadline' : task.deadline.isoformat(),
-            } for task in tasks]
-        return tasks
-
+        if tasks:
+            tasks = [{
+                    'title' : task.title,
+                    'deadline' : task.deadline.isoformat(),
+                } for task in tasks]
+            return tasks
+        else:
+            return None
 
 async def update_task(title: str, deadline: datetime, new_title = None):
     if new_title is None:
@@ -208,36 +221,56 @@ async def create_tasks_table():
 
 
 ================================================================================
+File: database\__init__.py
+================================================================================
+
+
+
+
+================================================================================
 File: services\utilities.py
 ================================================================================
 
-from database import crud
+from app.database import crud
 from datetime import datetime
 
 
-async def get_task_by_title_or_return_not_found(title: str):
+async def get_all_tasks_or_not_found():
+    tasks = await crud.get_all_tasks()
+    if tasks is None:
+        return {'message' : 'no task in database.'}
+    else:
+        return {'tasks' : tasks, 'message' : 'ok'}
+
+
+async def get_task_by_title_or_not_found(title: str):
     task = await crud.get_task_by_title(title)
     if task is None:
-        return {'message' : 'task not fonud.'}
+        return {'message' : 'task not found.'}
+    return {'tasks' : task, 'message' : 'ok'}
 
 
-async def get_task_by_deadline_or_return_not_found(deadline: str):
+async def get_tasks_by_deadline_or_not_found(deadline: str):
     deadline = datetime.fromisoformat(deadline)
 
-    task = await crud.get_task_by_deadline(deadline)
-    if task is None:
-        return {'message' : 'task not fonud.'}
+    tasks = await crud.get_tasks_by_deadline(deadline)
+    if tasks is None:
+        return {'message' : 'task not found.'}
+    tasks = {'tasks' : tasks, 'message' : 'ok'}
+    return tasks
 
-
-async def create_task_or_fail(title: str, deadline: datetime):
+async def create_task_or_fail(title: str, deadline: str):
+    deadline = datetime.fromisoformat(deadline)
     result = await crud.create_task(title, deadline)
     if result:
-        return await get_task_by_deadline_or_return_not_found(title)
+        task = await get_task_by_title_or_not_found(title)
+        return {'tasks' : task, 'message' : 'ok'}
     else:
         return {'message' : 'task has not been created'}
 
 
-async def update_task_or_fail(title:str, deadline: datetime, new_title: str = None):
+async def update_task_or_fail(title:str, deadline: str, new_title: str = None):
+    deadline = datetime.fromisoformat(deadline)
     task = await crud.get_task_by_title(title)
 
     if not task:
@@ -245,10 +278,11 @@ async def update_task_or_fail(title:str, deadline: datetime, new_title: str = No
 
     result = await crud.update_task(title, deadline, new_title)
     if result:
-        return {'message' : 'task updated'}
+        task = await crud.get_task_by_title(new_title)
+        return {'tasks' : task, 'message' : 'task updated'}
     else:
         return {'message' : 'task did not update'}
-
+    
 
 async def delete_task_or_fail(title: str):
     task = await crud.get_task_by_title(title)
@@ -262,4 +296,154 @@ async def delete_task_or_fail(title: str):
         return {'message' : 'task deleted'}
     else:
         return {'message' : 'task did not delete'}
+
+
+================================================================================
+File: services\__init__.py
+================================================================================
+
+
+
+
+================================================================================
+File: tests\utilities_test.py
+================================================================================
+
+import unittest
+from unittest.mock import AsyncMock, patch
+import pytest 
+from app.services import utilities
+from datetime import datetime
+
+
+@pytest.mark.asyncio
+async def test_get_all_tasks_success():
+    mock_task = [{'title' : 'test task 1', 'deadline' : '2025-11-11T19:02:31.464157'}, {'title' : 'test task 2', 'deadline' : '2025-11-11T19:02:31.464157'}]
+    with patch('app.database.crud.get_all_tasks', new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_task
+        
+        result = await utilities.get_all_tasks_or_not_found()
+        
+        assert result['message'] == 'ok'
+        assert result['tasks'][0]['title'] == 'test task 1'
+        assert result['tasks'][1]['title'] == 'test task 2'
+
+@pytest.mark.asyncio
+async def test_get_all_tasks_success():
+    with patch('app.database.crud.get_all_tasks', new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = None
+        
+        result = await utilities.get_all_tasks_or_not_found()
+        
+        assert result['message'] == 'no task in database.'
+
+
+@pytest.mark.asyncio
+async def test_get_task_by_title_found():
+    mock_task = {'title' : 'test task', 'deadline' : '2025-11-11T19:02:31.464157'}
+    with patch('app.database.crud.get_task_by_title', new_callable=AsyncMock) as mock:
+        mock.return_value = mock_task
+        
+        result = await utilities.get_task_by_title_or_not_found('test task')
+        
+        assert result['message'] == 'ok'
+        assert result['tasks']['title'] == 'test task'
+        
+        mock.assert_awaited_once_with('test task')
+
+
+@pytest.mark.asyncio
+async def test_get_task_by_title_not_found():
+    with patch('app.database.crud.get_task_by_title', new_callable=AsyncMock) as mock:
+        mock.return_value = None
+        
+        result = await utilities.get_task_by_title_or_not_found('no')
+        
+        assert result == {'message' : 'task not found.'}
+        mock.assert_awaited_once_with('no')
+
+
+@pytest.mark.asyncio
+async def test_get_tasks_by_deadline_found():
+    mock_task = [{'title' : 'test task 1', 'deadline' : '2025-11-11T19:02:31.464157'}, {'title' : 'test task 2', 'deadline' : '2025-11-11T19:02:31.464157'}]
+    with patch('app.database.crud.get_tasks_by_deadline', new_callable=AsyncMock) as mock:
+        mock.return_value = mock_task
+        result = await utilities.get_tasks_by_deadline_or_not_found('2025-11-11T19:02:31.464157')
+        
+        assert result['message'] == 'ok'
+        assert result['tasks'] == mock_task
+        mock.assert_awaited_once_with(datetime.fromisoformat('2025-11-11T19:02:31.464157'))
+
+
+@pytest.mark.asyncio
+async def test_get_tasks_by_deadline_not_found():
+    with patch('app.database.crud.get_tasks_by_deadline', new_callable=AsyncMock) as mock:
+        mock.return_value = None
+        
+        random_time = datetime.now()
+        result = await utilities.get_tasks_by_deadline_or_not_found(random_time.isoformat())
+        
+        assert result['message'] == 'task not found.'
+        mock.assert_awaited_once_with(random_time)
+
+
+@pytest.mark.asyncio
+async def test_create_task_success():
+    mock_task = {'title' : 'test', 'deadline' : '2025-11-11T19:02:31.464157'}
+    with patch('app.database.crud.create_task', new_callable=AsyncMock) as mock_create, patch('app.services.utilities.get_task_by_title_or_not_found') as mock_get:
+        mock_create.return_value = True
+        mock_get.return_value = mock_task
+        
+        result = await utilities.create_task_or_fail('test', '2025-11-11T19:02:31.464157')
+        
+        assert result['message'] == 'ok'
+        assert result['tasks']['title'] == 'test'
+        assert result['tasks']['deadline'] == '2025-11-11T19:02:31.464157'
+        
+        mock_create.assert_awaited_once_with('test', datetime.fromisoformat('2025-11-11T19:02:31.464157'))
+        mock_get.assert_awaited_once_with('test')
+
+
+@pytest.mark.asyncio
+async def test_create_task_fail():
+    with patch('app.database.crud.create_task', new_callable=AsyncMock) as mock_create:
+        mock_create.return_value = False
+        
+        result = await utilities.create_task_or_fail('test', '2025-11-11T19:02:31.464157')
+        assert result['message'] == 'task has not been created'
+        
+        mock_create.assert_awaited_once_with('test', datetime.fromisoformat('2025-11-11T19:02:31.464157'))
+
+
+@pytest.mark.asyncio
+async def test_delete_task_success():
+    mock_task = {'title' : 'test 1', 'deadline' : '2025-11-11T19:02:31.464157'}
+    
+    with patch('app.database.crud.delete_task', new_callable=AsyncMock) as mock_delete, patch('app.database.crud.get_task_by_title', new_callable=AsyncMock) as mock_get:
+        mock_delete.return_value = True
+        mock_get.return_value = mock_task
+
+        result = await utilities.delete_task_or_fail('test 1')
+        
+        assert result['message'] == 'task deleted'
+
+
+@pytest.mark.asyncio
+async def test_delete_task_fail():
+    mock_task = {'title' : 'test 1', 'deadline' : '2025-11-11T19:02:31.464157'}
+    
+    with patch('app.database.crud.delete_task', new_callable=AsyncMock) as mock_delete, patch('app.database.crud.get_task_by_title', new_callable=AsyncMock) as mock_get:
+        mock_delete.return_value = False
+        mock_get.return_value = mock_task
+
+        result = await utilities.delete_task_or_fail('test 1')
+        
+        return {'message' : 'task did not delete'}
+
+
+================================================================================
+File: tests\__init__.py
+================================================================================
+
+
 

@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Request
-from database import crud
-import json
-
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+from .services import utilities
 
 app = FastAPI()
 
@@ -9,56 +8,75 @@ app = FastAPI()
 @app.get('/')
 async def list_tasks():
     try:
-        return await crud.get_all_tasks()
+        result = await utilities.get_all_tasks_or_not_found()
+        if 'tasks' in result:
+            return JSONResponse(content=result, status_code=200)
+        return JSONResponse(content=result, status_code=404)
     except Exception as e:
-        return {'message' : f'could not resolve tasks. raised an exception : {e}.'}
+        raise HTTPException(status_code=500, detail=f"Could not resolve request: {e}")
+
 
 @app.get('/title/{title}')
 async def read_task_by_title(title: str):
-    return await crud.get_task_by_title(title)
+    try:
+        result = await utilities.get_task_by_title_or_not_found(title)
+        if 'tasks' in result:
+            return JSONResponse(content=result, status_code=200)
+        return JSONResponse(content=result, status_code=404)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not resolve request: {e}")
 
 
 @app.get('/deadline/{deadline}')
-async def read_task_by_title(deadline: str):
-    return await crud.get_task_by_deadline(deadline)
+async def read_tasks_by_deadline(deadline: str):
+    try:
+        result = await utilities.get_tasks_by_deadline_or_not_found(deadline)
+        if 'tasks' in result:
+            return JSONResponse(content=result, status_code=200)
+        return JSONResponse(content=result, status_code=404)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not resolve request: {e}")
 
 
 @app.post('/create')
 async def create_new_task(request: Request):
-    payload = await request.json()
-    result = await crud.create_task(payload.get('title'), payload.get('deadline'))
-    if result:
-        return await crud.get_task_by_title(payload.get('title'))
-    else:
-        return {'message' : 'task has not been created'}
+    try:
+        payload = await request.json()
+        result = await utilities.create_task_or_fail(payload.get('title'), payload.get('deadline'))
+        if 'tasks' in result:
+            return JSONResponse(content=result, status_code=201)
+        return JSONResponse(content=result, status_code=400)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not resolve request: {e}")
 
 
 @app.put('/update')
 async def update_task(request: Request):
-    payload = await request.json()
-    task = await crud.get_task_by_title(payload.get('title'))
-
-    if not task:
-        return {'message' : 'task not found'}
-
-    result = await crud.update_task(payload.get('title'), payload.get('deadline'), payload.get('new_title'))
-    if result:
-        return {'message' : 'task updated'}
-    else:
-        return {'message' : 'task did not update'}
+    try:
+        payload = await request.json()
+        result = await utilities.update_task_or_fail(
+            payload.get('title'), 
+            payload.get('deadline'), 
+            payload.get('new_title')
+        )
+        if result.get('tasks'):
+            return JSONResponse(content=result, status_code=200)
+        elif result.get('message') == 'task not found':
+            return JSONResponse(content=result, status_code=404)
+        return JSONResponse(content=result, status_code=400)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not resolve request: {e}")
 
 
 @app.delete('/delete')
 async def delete_task(request: Request):
-    payload = await request.json()
-    task = await crud.get_task_by_title(payload.get('title'))
-    
-    if not task:
-        return {'message' : 'task not found'}
-    
-    result = await crud.delete_task(payload.get('title'))
-
-    if result:
-        return {'message' : 'task deleted'}
-    else:
-        return {'message' : 'task did not delete'}
+    try:
+        payload = await request.json()
+        result = await utilities.delete_task_or_fail(payload.get('title'))
+        if result.get('message') == 'task deleted':
+            return JSONResponse(content=result, status_code=200)
+        elif result.get('message') == 'task not found':
+            return JSONResponse(content=result, status_code=404)
+        return JSONResponse(content=result, status_code=400)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not resolve request: {e}")

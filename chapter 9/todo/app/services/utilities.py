@@ -2,14 +2,22 @@ from app.database import crud
 from datetime import datetime
 
 
-async def get_task_by_title_or_return_not_found(title: str):
+async def get_all_tasks_or_not_found():
+    tasks = await crud.get_all_tasks()
+    if tasks is None:
+        return {'message' : 'no task in database.'}
+    else:
+        return {'tasks' : tasks, 'message' : 'ok'}
+
+
+async def get_task_by_title_or_not_found(title: str):
     task = await crud.get_task_by_title(title)
     if task is None:
         return {'message' : 'task not found.'}
     return {'tasks' : task, 'message' : 'ok'}
 
 
-async def get_tasks_by_deadline_or_return_not_found(deadline: str):
+async def get_tasks_by_deadline_or_not_found(deadline: str):
     deadline = datetime.fromisoformat(deadline)
 
     tasks = await crud.get_tasks_by_deadline(deadline)
@@ -22,7 +30,7 @@ async def create_task_or_fail(title: str, deadline: str):
     deadline = datetime.fromisoformat(deadline)
     result = await crud.create_task(title, deadline)
     if result:
-        task = await get_task_by_title_or_return_not_found(title)
+        task = await get_task_by_title_or_not_found(title)
         return {'tasks' : task, 'message' : 'ok'}
     else:
         return {'message' : 'task has not been created'}

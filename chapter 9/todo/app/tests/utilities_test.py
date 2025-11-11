@@ -6,12 +6,34 @@ from datetime import datetime
 
 
 @pytest.mark.asyncio
+async def test_get_all_tasks_success():
+    mock_task = [{'title' : 'test task 1', 'deadline' : '2025-11-11T19:02:31.464157'}, {'title' : 'test task 2', 'deadline' : '2025-11-11T19:02:31.464157'}]
+    with patch('app.database.crud.get_all_tasks', new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_task
+        
+        result = await utilities.get_all_tasks_or_not_found()
+        
+        assert result['message'] == 'ok'
+        assert result['tasks'][0]['title'] == 'test task 1'
+        assert result['tasks'][1]['title'] == 'test task 2'
+
+@pytest.mark.asyncio
+async def test_get_all_tasks_success():
+    with patch('app.database.crud.get_all_tasks', new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = None
+        
+        result = await utilities.get_all_tasks_or_not_found()
+        
+        assert result['message'] == 'no task in database.'
+
+
+@pytest.mark.asyncio
 async def test_get_task_by_title_found():
     mock_task = {'title' : 'test task', 'deadline' : '2025-11-11T19:02:31.464157'}
     with patch('app.database.crud.get_task_by_title', new_callable=AsyncMock) as mock:
         mock.return_value = mock_task
         
-        result = await utilities.get_task_by_title_or_return_not_found('test task')
+        result = await utilities.get_task_by_title_or_not_found('test task')
         
         assert result['message'] == 'ok'
         assert result['tasks']['title'] == 'test task'
@@ -24,7 +46,7 @@ async def test_get_task_by_title_not_found():
     with patch('app.database.crud.get_task_by_title', new_callable=AsyncMock) as mock:
         mock.return_value = None
         
-        result = await utilities.get_task_by_title_or_return_not_found('no')
+        result = await utilities.get_task_by_title_or_not_found('no')
         
         assert result == {'message' : 'task not found.'}
         mock.assert_awaited_once_with('no')
@@ -35,7 +57,7 @@ async def test_get_tasks_by_deadline_found():
     mock_task = [{'title' : 'test task 1', 'deadline' : '2025-11-11T19:02:31.464157'}, {'title' : 'test task 2', 'deadline' : '2025-11-11T19:02:31.464157'}]
     with patch('app.database.crud.get_tasks_by_deadline', new_callable=AsyncMock) as mock:
         mock.return_value = mock_task
-        result = await utilities.get_tasks_by_deadline_or_return_not_found('2025-11-11T19:02:31.464157')
+        result = await utilities.get_tasks_by_deadline_or_not_found('2025-11-11T19:02:31.464157')
         
         assert result['message'] == 'ok'
         assert result['tasks'] == mock_task
@@ -48,7 +70,7 @@ async def test_get_tasks_by_deadline_not_found():
         mock.return_value = None
         
         random_time = datetime.now()
-        result = await utilities.get_tasks_by_deadline_or_return_not_found(random_time.isoformat())
+        result = await utilities.get_tasks_by_deadline_or_not_found(random_time.isoformat())
         
         assert result['message'] == 'task not found.'
         mock.assert_awaited_once_with(random_time)
@@ -57,7 +79,7 @@ async def test_get_tasks_by_deadline_not_found():
 @pytest.mark.asyncio
 async def test_create_task_success():
     mock_task = {'title' : 'test', 'deadline' : '2025-11-11T19:02:31.464157'}
-    with patch('app.database.crud.create_task', new_callable=AsyncMock) as mock_create, patch('app.services.utilities.get_task_by_title_or_return_not_found') as mock_get:
+    with patch('app.database.crud.create_task', new_callable=AsyncMock) as mock_create, patch('app.services.utilities.get_task_by_title_or_not_found', new_callable=AsyncMock) as mock_get:
         mock_create.return_value = True
         mock_get.return_value = mock_task
         
@@ -105,4 +127,4 @@ async def test_delete_task_fail():
 
         result = await utilities.delete_task_or_fail('test 1')
         
-        return {'message' : 'task did not delete'}
+        assert result['message'] == 'task did not delete'
