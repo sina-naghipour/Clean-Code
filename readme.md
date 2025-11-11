@@ -716,3 +716,109 @@ when we use a third-party package like `Map`, we don't want this api to run over
 
 if we write some tests to understand the gist of how this `third-party API` works, we learn api through it, and after some time we could check this tests to see if the api is still working how we wish it would work.
 
+# Chaoter 9 : Unit Test
+
+### Three laws of test driven development
+
+- **first law** you may not write production code until you have written a failing unit test.
+- **second law** you may not write more of a unit test than is sufficient to fail, and not compiling is failing.
+- **third law** you may not write more production code than is sufficient to pass the currently failing test.
+
+### What is a test suite?
+
+a `collection` of test cases, that are grouped for test execution purposes.
+
+### Moral of first pages
+
+test code is just as important as production code.
+
+### Unit test keeps our code flexible, maintainable, and reusable.
+
+without test, every change is a possible bug.
+
+### Three things to make clean tests. readability, readability and readability.
+
+readability is more important in unit test than production test.
+
+what makes it readable? same as other codes -> clarity, simplicity, and density of expression.
+
+### Dual standards
+
+there are things that you might never do in production environment that are perfectly fine in a test environment usually they involve issues of `Cpu` or `Memory` efficiency.
+but they `never` involve issues of `cleanliness`.
+
+### One assert per test
+
+but this `given-when-then` convention creates an issue. `duplication.
+we can use `template` method pattern by putting the `given/when` parts in the base class, and the `then` parts in different derivatives.
+
+the best way to say this -> `the number of asserts in a test ought to be minimized`.
+
+### Single concept per test
+
+merging tests to getter is going to decrease our readability.
+
+### First rule
+
+- **Fast** tests should be fast, they should run quickly.they should be able to run `frequently`. if you don't run them frequently you won't be able to find bugs quickly.
+- **Independent** tests should not depend on each other.one test should not set up the condition for another test. you should be able to run tests in any orders you want.
+- **Repeatable** tests should be repeatable in any environment.they should be able to run in `production` environment, `QA` environment, etc.
+- **Self-Validating** the test should have a `boolean output`.either they pass or fail.you should not read text files or logs to know that a test has failed or passed.
+- **Timely** unit tests should be written `just before` the production code that makes them pass. if you write tests afterwards you might find the production code to be hard to test.
+
+
+Invent testing APIs that act as domain-specific language that helps you write the tests.
+
+# Notes until now
+
+we have a function like : 
+
+```python
+async def get_task_by_title(title: str):
+    async with async_session() as session:
+
+        query = select(tasks_table).where(tasks_table.c.title ==title)
+        result = await session.execute(query)
+        task = result.fetchone()
+        if task:
+            return {'title' : task.title, 'deadline' : task.deadline.isoformat()}
+        else:
+            return None   
+```
+
+should we put `try/catch` block in this?
+
+simple answer : `no`.
+
+we should write `pure` functions that do what they do `business logic` and do `error handling` one level above.
+
+we should not clutter this function with exception handling, the caller might want to react differently depending on context(API, test, etc).
+
+### We handle exception when we call function not when we right them.
+
+
+```python
+@app.get('/title/{title}')
+async def read_task_by_title(title: str):
+    task = await db.get_task_by_title(title)
+    if not task:
+        return {'message': 'task not found'}
+    return task
+
+@app.get('/deadline/{deadline}')
+async def read_task_by_deadline(deadline: str):
+    tasks = await db.get_task_by_deadline(deadline)
+    if not tasks:
+        return {'message': 'tasks not found'}
+    return tasks
+```
+
+the issue with this code is that we have repeating logic.
+
+call database, validate output return it.
+
+we can use helper functions that does this for us.
+
+### this means that our logic for `not found` is scattered across our code, we need to centralize it.
+
+### there are 2 more duplications in my code -> `async with async_session() as session` and `datetime.fromisoformat(deadline)`.

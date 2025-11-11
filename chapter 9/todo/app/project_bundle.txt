@@ -1,0 +1,265 @@
+
+================================================================================
+File: main.py
+================================================================================
+
+from fastapi import FastAPI, Request
+from database import crud
+import json
+
+
+app = FastAPI()
+
+
+@app.get('/')
+async def list_tasks():
+    try:
+        return await crud.get_all_tasks()
+    except Exception as e:
+        return {'message' : f'could not resolve tasks. raised an exception : {e}.'}
+
+@app.get('/title/{title}')
+async def read_task_by_title(title: str):
+    return await crud.get_task_by_title(title)
+
+
+@app.get('/deadline/{deadline}')
+async def read_task_by_title(deadline: str):
+    return await crud.get_task_by_deadline(deadline)
+
+
+@app.post('/create')
+async def create_new_task(request: Request):
+    payload = await request.json()
+    result = await crud.create_task(payload.get('title'), payload.get('deadline'))
+    if result:
+        return await crud.get_task_by_title(payload.get('title'))
+    else:
+        return {'message' : 'task has not been created'}
+
+
+@app.put('/update')
+async def update_task(request: Request):
+    payload = await request.json()
+    task = await crud.get_task_by_title(payload.get('title'))
+
+    if not task:
+        return {'message' : 'task not found'}
+
+    result = await crud.update_task(payload.get('title'), payload.get('deadline'), payload.get('new_title'))
+    if result:
+        return {'message' : 'task updated'}
+    else:
+        return {'message' : 'task did not update'}
+
+
+@app.delete('/delete')
+async def delete_task(request: Request):
+    payload = await request.json()
+    task = await crud.get_task_by_title(payload.get('title'))
+    
+    if not task:
+        return {'message' : 'task not found'}
+    
+    result = await crud.delete_task(payload.get('title'))
+
+    if result:
+        return {'message' : 'task deleted'}
+    else:
+        return {'message' : 'task did not delete'}
+
+
+================================================================================
+File: database\connection.py
+================================================================================
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import MetaData
+
+
+def create_database_engine(database_url: str):
+    engine = create_async_engine(database_url, echo=True, pool_size=10, max_overflow=20)
+    return engine
+
+
+def create_database_session(engine: object):
+    session = sessionmaker(class_=AsyncSession, expire_on_commit=False, bind=engine)
+    return session
+
+
+async def get_database(session):
+    database = session()
+    try:
+        yield database
+    finally:
+        await database.close()
+
+
+engine = create_database_engine('postgresql+asyncpg://postgres:toor@localhost:5432/todo')
+metadata = MetaData()
+async_session = create_database_session(engine)
+
+
+================================================================================
+File: database\crud.py
+================================================================================
+
+from datetime import datetime
+from sqlalchemy.future import select
+from sqlalchemy import insert, update, delete
+from .connection import async_session
+from .models import tasks_table
+
+
+async def create_task(title: str, deadline: datetime):
+    async with async_session() as session:
+        query = insert(tasks_table).values(title=title, deadline=deadline)
+        await session.execute(query)
+        await session.commit()
+        return True
+    
+
+async def get_task_by_title(title: str):
+    async with async_session() as session:
+
+        query = select(tasks_table).where(tasks_table.c.title ==title)
+        result = await session.execute(query)
+        task = result.fetchone()
+        if task:
+            return {'title' : task.title, 'deadline' : task.deadline.isoformat()}
+        else:
+            return None    
+
+
+async def get_task_by_deadline(deadline: datetime):
+    async with async_session() as session:    
+
+        query = select(tasks_table).where(tasks_table.c.deadline ==deadline)
+        result = await session.execute(query)
+        tasks = result.fetchall()
+        if tasks:
+            return [{'title' : task.title, 'deadline' : task.deadline.isoformat()} for task in tasks]
+        else:
+            return None    
+
+
+async def get_all_tasks():
+    async with async_session() as session:
+        query = select(tasks_table)
+        result = await session.execute(query)
+        tasks = result.fetchall()
+        tasks = [{
+                'title' : task.title,
+                'deadline' : task.deadline.isoformat(),
+            } for task in tasks]
+        return tasks
+
+
+async def update_task(title: str, deadline: datetime, new_title = None):
+    if new_title is None:
+        new_title = title
+    async with async_session() as session:
+        query = update(tasks_table).where(tasks_table.c.title == title).values(title = new_title, deadline = datetime.fromisoformat(deadline))
+        result = await session.execute(query)
+        await session.commit()
+
+        if result.rowcount > 0:
+            return True
+        else:
+            return False
+
+
+async def delete_task(title: str):
+    async with async_session() as session:
+        query = delete(tasks_table).where(tasks_table.c.title == title)
+        result = await session.execute(query)
+        await session.commit()
+        
+        if result.rowcount > 0:
+            return True
+        else:
+            return False
+
+
+
+
+================================================================================
+File: database\models.py
+================================================================================
+
+from sqlalchemy import Table, Column, Integer, String, DateTime
+from .connection import metadata, engine
+
+
+tasks_table = Table(
+    'tasks',
+    metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('title', String(100), unique=True),
+    Column('deadline', DateTime) )
+
+
+async def create_tasks_table():
+    async with engine.begin() as conn:
+        await conn.run_sync(metadata.create_all)
+
+
+
+
+================================================================================
+File: services\utilities.py
+================================================================================
+
+from database import crud
+from datetime import datetime
+
+
+async def get_task_by_title_or_return_not_found(title: str):
+    task = await crud.get_task_by_title(title)
+    if task is None:
+        return {'message' : 'task not fonud.'}
+
+
+async def get_task_by_deadline_or_return_not_found(deadline: str):
+    deadline = datetime.fromisoformat(deadline)
+
+    task = await crud.get_task_by_deadline(deadline)
+    if task is None:
+        return {'message' : 'task not fonud.'}
+
+
+async def create_task_or_fail(title: str, deadline: datetime):
+    result = await crud.create_task(title, deadline)
+    if result:
+        return await get_task_by_deadline_or_return_not_found(title)
+    else:
+        return {'message' : 'task has not been created'}
+
+
+async def update_task_or_fail(title:str, deadline: datetime, new_title: str = None):
+    task = await crud.get_task_by_title(title)
+
+    if not task:
+        return {'message' : 'task not found'}
+
+    result = await crud.update_task(title, deadline, new_title)
+    if result:
+        return {'message' : 'task updated'}
+    else:
+        return {'message' : 'task did not update'}
+
+
+async def delete_task_or_fail(title: str):
+    task = await crud.get_task_by_title(title)
+    
+    if not task:
+        return {'message' : 'task not found'}
+    
+    result = await crud.delete_task(title)
+
+    if result:
+        return {'message' : 'task deleted'}
+    else:
+        return {'message' : 'task did not delete'}
+
