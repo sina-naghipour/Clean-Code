@@ -822,3 +822,466 @@ we can use helper functions that does this for us.
 ### this means that our logic for `not found` is scattered across our code, we need to centralize it.
 
 ### there are 2 more duplications in my code -> `async with async_session() as session` and `datetime.fromisoformat(deadline)`.
+
+# Chapter 10 : Classes
+
+classes should begin with a list of variables.
+
+first static contsants, then private static variables then private instance variables.
+
+there is seldom good reason to have a `public` variable.
+
+public functions should follow the list of variables.
+
+### Encapsulation
+
+loosening encapsulation is always a last resort.
+
+### Classes should be small
+
+with functions we measured size by line, with classes, we measure size by `responsiblities`.
+
+the name of the class should describe what responsibilities it fulfills.
+
+naming is the first way of helping determine class size.
+
+we should also be able to write a brief description of the class in 25 words, without using the words `if`, `and`, `or`, or `but`.
+
+### The single responsibility Principle
+
+the single responsibility principle (SPR) states that a class or module should have one, and only one `reason to change`. this principle gives us both a definition of responsiblity and a guidelines for class size.
+
+this is an important quote -> a system with `many small classes` has no more moving parts than a system with a `few large classes`. there is just as much to learn in the system with a few large classes.
+
+every sizeable system will contain a large amount of logic and complexity. the main goal in managing such complexity is to `organize` it so that a developer knows where to look to find things.
+
+### Cohesion
+
+classes should have a small number of instance variables.
+
+in general the more variable a method manipulates the more cohesive that method is to its class. a class in which each variable is used by each method is `maximally cohesive`.
+
+we would like the cohesion to be high. when a class is cohesive it means that the variables and methods hang together as a logical whole.
+
+### Maintaining cohesion results in many small classes
+
+to keep our classes cohesive enough we often end up with small classes.
+
+### Organizing for change
+
+for most systems change is continual.for now, lets work on this `sql` class.
+lets say sql now supports `update`, we need to `open up` this class to make modifications.
+
+the problem with opening a class is that it introduces risk. any modifications to the class have the potential of breaking other code in the class. it must be fully retested.
+```cpp
+public class Sql {
+ public Sql(String table, Column[] columns)
+ public String create()
+ public String insert(Object[] fields)
+ public String selectAll()
+ public String findByKey(String keyColumn, String keyValue)
+ public String select(Column column, String pattern)
+ public String select(Criteria criteria)
+ public String preparedInsert()
+ private String columnList(Column[] columns)
+ private String valuesList(Object[] fields, final Column[] columns)
+ private String selectWithCriteria(String criteria)
+ private String placeholderList(Column[] columns)
+}
+```
+
+the `sql` class must change when we add a new type of statement. it also must change when we alter the details of a single statement type (if wee need to modify select functionality to support subselect). these two reasons to change mean that `sql` does not follow `single responsibility principle`.
+
+other way to spot not following single responsibility is that `selectWithCriteria` only relates to `select`.
+
+```cpp
+abstract public class Sql {
+ public Sql(String table, Column[] columns)
+ abstract public String generate();
+}
+public class CreateSql extends Sql {
+ public CreateSql(String table, Column[] columns)
+ @Override public String generate()
+}
+public class SelectSql extends Sql {
+ public SelectSql(String table, Column[] columns)
+ @Override public String generate()
+}
+public class InsertSql extends Sql {
+ public InsertSql(String table, Column[] columns, Object[] fields)
+ @Override public String generate()
+ private String valuesList(Object[] fields, final Column[] columns)
+}
+public class SelectWithCriteriaSql extends Sql {
+ public SelectWithCriteriaSql(
+ String table, Column[] columns, Criteria criteria)
+ @Override public String generate()
+}
+public class SelectWithMatchSql extends Sql {
+ public SelectWithMatchSql(
+ String table, Column[] columns, Column column, String pattern)
+ @Override public String generate()
+}
+public class FindByKeySql extends Sql
+ public FindByKeySql(
+ String table, Column[] columns, String keyColumn, String keyValue)
+ @Override public String generate()
+}
+public class PreparedInsertSql extends Sql {
+ public PreparedInsertSql(String table, Column[] columns)
+ @Override public String generate() {
+ private String placeholderList(Column[] columns)
+}
+public class Where {
+ public Where(String criteria)
+ public String generate()
+}
+```
+
+this code is super simple. our required comprehension time to understand any class decreases to almost nothing. the risk that one function could break the other becomes vanishingly small.
+
+
+### Isolating from change
+
+the lack of coupling means that the elements of our system are better isolated from each other and from change. this isolation makes it easier to understand each element of the system.
+
+### Dependency inversion principle
+
+says that our classes should fucking depend upon abstractions not on concrete details.
+
+lazy work here, this is the text of the book.
+
+```text
+Instead of being dependent upon the implementation details of the TokyoStockExchange class, our Portfolio class is now dependent upon the StockExchange interface.
+The StockExchange interface represents the abstract concept of asking for the current price
+of a symbol. This abstraction isolates all of the specific details of obtaining such a price,
+including from where that price is obtained.
+```
+
+# Chapter 11 : Systems
+
+### How would you build a city?
+
+cities work because they have evolved appropriate levels of abstractions and modularity. that make it possible for individuals and the `compontets` they manage to work effectively.
+
+we want to learn how to stay clean at higher levels of abstractions., the `system` level.
+
+### Seperate constructing a system from using it
+
+constructing a building is very different from living in it.
+
+- software systems should seperate the startup process, when the application objects are being `constructed` and dependencies are `wired` together, from the runtime logic that takes over after startup.
+
+the startup process is a `concern` that every application should address.
+
+the code for the startup process is ad hoc and it is mixed in with the runtime logic.
+
+```cpp
+public Service getService() {
+ if (service == null)
+ service = new MyServiceImpl(...); // Good enough default for most cases?
+ return service;
+}
+```
+
+we should prevent little convenient idioms result in modularity breakdown.
+
+### Seperation of main
+
+one way to seperate contstruction from use is simply to move all aspects of construction to `main` or modules called by `main` and to design the rest of the system assuming that all objects have been constructed and wired up appropriately.
+
+the flow of control is easy to follow, `main` builds the objects necessary for the system then passes them to application. which simply uses them.
+
+notice the direction of the dependency `arrows crossing the barrier` between `main` and the application.
+
+they all go one direction, `pointing away` from main.
+
+this means that the application has no knowledge of `main` or construction process. it simply expects that everything has been built properly.
+
+### Main idea of seperation of main
+
+you want your application code (business Logic) to only care about what it does not how objects are built.
+
+the **main module** is responsible for constructing everything -> databases, services controllers, etc.
+
+the application code just uses those dependencies assuming they're already properly wired up.
+
+### Example from AI
+
+lets say this our implementation.
+
+```python
+class Database:
+    def connect(self):
+        print("Connected to database")
+
+class UserService:
+    def __init__(self):
+        self.db = Database()  # ❌ constructing dependency inside
+
+    def get_user(self):
+        self.db.connect()
+        print("Getting user data")
+```
+
+and then :
+
+```python
+service = UserService()
+service.get_user()
+```
+
+you can see that `UserService` is tightly `coupled` with `Database`.
+
+you can't replace `Database`(for example, with a test or mock.)
+
+the construction logic is mixed into business logic.
+
+this code is with `seperation of main`:
+
+```python
+# Application Layer — "pure logic"
+# app.py
+class UserService:
+    def __init__(self, db):
+        self.db = db  # injected
+
+    def get_user(self):
+        self.db.connect()
+        print("Getting user data")
+
+# db.py
+class Database:
+    def connect(self):
+        print("Connected to database")
+# Main — "construction and wiring"
+# main.py
+from db import Database
+from app import UserService
+
+def main():
+    # 🧩 Construct dependencies
+    db = Database()
+    user_service = UserService(db)
+
+    # 🚀 Use the application
+    user_service.get_user()
+
+if __name__ == "__main__":
+    main()
+
+```
+
+**Neither UserService nor Database** knows about how they're created.
+
+```diff
++--------------------+
+|       main         |  →  constructs and wires everything
++--------------------+
+           |
+           v
++--------------------+
+|   Application      |  →  uses dependencies
+|  (UserService etc) |
++--------------------+
+
+```
+![alt text](image-1.png)
+
+### Factories
+
+sometimes the application is responsible for `when` an object gets created.
+
+we can use the `abstract factory pattern` to give the application the control of `when` an object is created. **but** keep  the construction details seperate from the application code.
+
+![alt text](image-2.png)
+
+### Notice in this pattern the application is decoupled from the details of how to build a `LineItem`.
+
+yet this is application is in complete control of `when` the `LineItem` gets created.
+
+### Dependency Injection
+
+the application of `Inversion of Control(IoC)` to dependency management.
+
+inversion of control moves secondary responseabilities from an object to other objects that are dedicated to the purpose, thereby supporting the `Single Responsibility Principle`.
+
+according to dependency management, an object should not take responsibility for instantiating dependencies itself. instead, it should pass it to another `authorative` mechanism, thereby inverting the control.
+
+**because setup is a global purpose**. this authorative mechanism will usually be either the `main` routine or a special-purpose `container`.
+
+but wait, we don't actually know what the heck is dependency injection.
+
+```python
+class UserService:
+    def __init__(self):
+        self.db = DatabaseConnection()  # hardcoded dependency
+
+    def get_user(self, user_id):
+        return self.db.query_user(user_id)
+```
+
+this is bad, hard to test or replace this `DatabaseConnection()` function.
+
+the solution?
+
+```python
+class UserService:
+    def __init__(self, db):
+        self.db = db  # dependency is injected
+
+    def get_user(self, user_id):
+        return self.db.query_user(user_id)
+```
+
+and outside the class we can do :
+
+```python
+real_db = DatabaseConnection()
+service = UserService(real_db)  # production
+
+mock_db = MockDatabase()
+test_service = UserService(mock_db)  # testing
+```
+
+this way you can change dependencies without touching the class.
+
+### Scaling Up
+
+it is a myth that we can get systems `right the first time`. we should only tell today's story, refactor, then expand the system to implement new stories tomorrow.
+
+software systems are unique compared to physical systems. their architecture can grow incrementally, if we maintain the `proper seperation of concerns`.
+
+### Cross cutting concerns
+
+sometimes two concerns could have intersections. a way to do this is `aspect oriented programming` which is a general purpose approach to restoring modularity for cross cutting concerns.
+
+what is aspect? `reusable behavior that cuts across your app` like `logging` and `timing`.
+
+how do we write `aspect oriented` code in python?
+
+using `decorators`.
+
+```python
+def log_calls(func):
+    def wrapper(*args, **kwargs):
+        print(f"[LOG] Calling {func.__name__} with args={args}, kwargs={kwargs}")
+        result = func(*args, **kwargs)
+        print(f"[LOG] {func.__name__} returned {result}")
+        return result
+    return wrapper
+
+
+@log_calls
+def add(a, b):
+    return a + b
+
+
+print(add(5, 7))
+```
+
+```csharp
+[LOG] Calling add with args=(5, 7), kwargs={}
+[LOG] add returned 12
+12
+```
+
+not necessarily good to do a big design up front. it is harmful actually.
+
+### Optimize decision making
+
+modularity and seperation of concerns make decentralized management and decision making possible. in a large scale, no one person can make all the decisions.
+
+it's not a bad thing to `postpone decisions until the last possible moment`. it lets us make informed choices with the best possible information.
+
+### Systems need domain-specific language
+
+in software, there has been renewed interest recently in creating `Domain-Specific Languages(DSL)`.
+
+a good `DSL` minimizes the `communication gap`.
+
+### if you use DSL`s effectively, it raises the abstraction level above code idioms and design patterns.
+
+
+### Nothing crazy in the final rambles of th is chapter, just fucking summarized it.
+
+# Chapter 12
+
+### Getting clean via emergent design
+
+we have been learning for shite.
+
+there are 4 rules of `Simple Design`.
+
+this fucking book has done me head aches.
+
+- Run all the tests.
+- Contain no duplication.
+- express the intent of the programmer.
+- minimize the number of classes and methods.
+
+### Rule #1 run all tests
+
+a design must produce a system that acts as intended.
+
+a system that is comprehensively tested and passes all of its tests all of the time is a testable system.
+
+systems that aren't testable aren't verifiable.
+
+making our systems testable pushes us toward a design where our classes are `small` and `single purpose`. it's just easier to test classes that conform to the `SRP`.
+
+so **making our systems testable helps us create better designs**.
+
+writing tests leads to `better designs`.
+
+### Refactoring
+
+once we have tests we are empowered to keep our code and classes clean.
+
+we do this by `increamentally` refactoring the code.
+
+`the fact that we have tests eliminates the fear that cleaning up the code will break it`.
+
+during this refactoring phase we can apply all the things we know about good software design. we can `increase cohesion`, `decrease coupling`, `seperate concerns`, `modularize system concerns`, `shrink our functions and classes`, `choose better names`, and so on.
+
+this phase is also when we apply the final three rules of simple design: `Eliminate duplication`, `ensure expressiveness`, and `minimize the number of classes and methods`.
+
+### No Duplication
+
+Duplication is the primary enemy of a well-designed system.
+
+it represents additional work, additional risk, and additional unnecessary complexity.
+
+Duplication `manifests itself in many forms`.
+
+lines of code that are `exactly the same`, lines of code that with a `bit of change` will look even more alike.
+
+duplication could also be in implementation.
+
+here's a good example from AI :
+
+```python
+class MyCollection {
+    private int count = 0;
+    private boolean empty = true;
+
+    int size() {
+        return count;
+    }
+
+    boolean isEmpty() {
+        return empty;
+    }
+}
+```
+
+this is `duplication in implementation`.
+
+we could `derive one from another`.
+
+```python
+boolean isEmpty() {
+    return size() == 0;
+}
+```
+
